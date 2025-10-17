@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from './services/supabaseClient';
 import type { Employee, EmployeeProblem } from './types';
@@ -16,12 +15,17 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 const formatProblemDate = (dateString: string | null | undefined): string => {
     if (!dateString) return '-';
-    const [year, month, day] = dateString.split('-');
-    return `${day}/${month}/${year}`;
+    try {
+        const [year, month, day] = dateString.split('-');
+        if (!year || !month || !day) return dateString;
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return dateString;
+    }
 };
 
-const formatRupiah = (value: string): string => {
-    let number_string = value.replace(/[^,\d]/g, '').toString();
+const formatRupiah = (value: number | string): string => {
+    let number_string = String(value).replace(/[^,\d]/g, '').toString();
     let split = number_string.split(',');
     let sisa = split[0].length % 3;
     let rupiah = split[0].substr(0, sisa);
@@ -37,7 +41,7 @@ const formatRupiah = (value: string): string => {
 };
 
 const parseRupiah = (value: string): number => {
-    return Number(value.replace(/[^0-9]/g, ''));
+    return Number(value.replace(/\./g, ''));
 };
 
 
@@ -104,7 +108,7 @@ const Header: React.FC<HeaderProps> = ({ appState, onNavigate, onLogout }) => {
                         </button>
                     )}
 
-                    {appState !== 'admin-view' && (
+                    { (appState === 'public-view' || appState === 'user-view') && (
                         <div ref={burgerContainerRef} id="burgerContainer" className="relative">
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -247,7 +251,6 @@ const HomePage: React.FC = () => {
 
 interface PageWrapperProps {
   children: React.ReactNode;
-  title: string;
   maxWidth?: 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
   showBackButton?: boolean;
   onBack?: () => void;
@@ -261,9 +264,8 @@ const PageWrapper: React.FC<PageWrapperProps> = ({ children, maxWidth = '5xl', s
 );
 
 
-// FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
 const UserMenuPage: React.FC<{ onNavigate: (page: string) => void; onBack: () => void; }> = ({ onNavigate, onBack }) => (
-    <PageWrapper title="Menu Pengguna" maxWidth="xl" showBackButton onBack={onBack}>
+    <PageWrapper maxWidth="xl" showBackButton onBack={onBack}>
         <h2 className="text-4xl font-extrabold text-blue-900 mb-6 text-center">Selamat Datang, Pengguna!</h2>
         <p className="text-lg text-gray-600 mb-10 text-center">Silakan pilih menu di bawah ini untuk mengakses layanan PT. Sahabat Intim Plasindo.</p>
         <div className="space-y-4 w-full">
@@ -295,8 +297,7 @@ const AdminLoginPage: React.FC<{ onLogin: () => void; onNavigate: (page: string)
     };
 
     return (
-        // FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
-        <PageWrapper title="Login Admin" maxWidth="xl">
+        <PageWrapper maxWidth="xl">
             <div className="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-100">
                 <h2 className="text-3xl font-bold text-red-600 mb-8 text-center">Login Admin</h2>
                 <form onSubmit={handleLogin}>
@@ -321,9 +322,8 @@ const AdminLoginPage: React.FC<{ onLogin: () => void; onNavigate: (page: string)
     );
 };
 
-// FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
 const AdminDashboardPage: React.FC<{ onNavigate: (page: string) => void; }> = ({ onNavigate }) => (
-    <PageWrapper title="Dashboard Admin" maxWidth="5xl">
+    <PageWrapper maxWidth="5xl">
         <h2 className="text-4xl font-extrabold text-blue-900 mb-6 text-center">Selamat Datang, Admin!</h2>
         <p className="text-lg text-gray-600 mb-10 text-center">Anda telah berhasil login ke Dashboard Administrasi PT. Sahabat Intim Plasindo.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
@@ -343,9 +343,8 @@ const AdminDashboardPage: React.FC<{ onNavigate: (page: string) => void; }> = ({
     </PageWrapper>
 );
 
-// FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
 const AboutPage: React.FC<{ onNavigate: (page: string) => void; }> = ({ onNavigate }) => (
-    <PageWrapper title="Tentang Kami" maxWidth="3xl">
+    <PageWrapper maxWidth="3xl">
         <div className="text-center">
             <h2 className="text-4xl font-extrabold text-blue-900 mb-6">Tentang Kami</h2>
             <p className="text-lg text-gray-600 mb-8">Didirikan pada tahun 1982, PT. Sahabat Intim Plasindo adalah salah satu produsen peralatan rumah tangga dan furniture plastik terkemuka di Indonesia. Kami berkomitmen untuk terus memperluas pasar, menciptakan produk yang handal dan inovatif, serta meningkatkan praktik bisnis kami untuk menjaga kepuasan pelanggan.</p>
@@ -366,10 +365,9 @@ const ContactPage: React.FC<{ onNavigate: (page: string) => void; }> = ({ onNavi
     };
 
     return (
-        // FIX: Corrected invalid 'maxWidth' prop from "md" to "xl" and added missing 'title' prop.
-        <PageWrapper title="Hubungi Kami" maxWidth="xl">
+        <PageWrapper maxWidth="xl">
             <h2 className="text-4xl font-extrabold text-blue-900 mb-8 text-center">Hubungi Kami</h2>
-            <div className="w-full bg-white p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-100 text-left">
+            <div className="w-full max-w-md bg-white p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-100 text-left">
                 <p className="mb-4"><span className="font-semibold">Alamat:</span> Jalan Peternakan III No. 38, Kota Administrasi Jakarta Barat, Daerah Khusus Ibukota Jakarta 11720, Indonesia</p>
                 <p className="mb-4"><span className="font-semibold">Telepon:</span> +62 851-7506-5351</p>
                 <p className="mb-4"><span className="font-semibold">Email:</span> admprod21@gmail.com</p>
@@ -389,9 +387,8 @@ const ContactPage: React.FC<{ onNavigate: (page: string) => void; }> = ({ onNavi
     );
 };
 
-// FIX: Added missing 'title' prop by passing the 'title' from StaticInfoPage's props.
 const StaticInfoPage: React.FC<{ title: string, content: string, onBack: () => void, titleColor: string }> = ({ title, content, onBack, titleColor }) => (
-    <PageWrapper title={title} maxWidth="3xl" showBackButton onBack={onBack}>
+    <PageWrapper maxWidth="3xl" showBackButton onBack={onBack}>
         <div className="text-center">
             <h2 className={`text-4xl font-extrabold ${titleColor} mb-6`}>{title}</h2>
             <p className="text-lg text-gray-600 mb-10">{content}</p>
@@ -402,9 +399,8 @@ const StaticInfoPage: React.FC<{ title: string, content: string, onBack: () => v
     </PageWrapper>
 );
 
-// FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
 const ProductionReportPage: React.FC<{onBack: () => void}> = ({onBack}) => (
-    <PageWrapper title="Update Permasalahan Produksi" maxWidth="3xl" showBackButton onBack={onBack}>
+    <PageWrapper maxWidth="3xl" showBackButton onBack={onBack}>
         <div className="text-center">
             <h2 className="text-4xl font-extrabold text-blue-900 mb-6">Update Permasalahan Produksi</h2>
             <p className="text-lg text-gray-600 mb-10">Halaman ini akan berisi laporan barang BS/rusak. (Fitur dalam pengembangan)</p>
@@ -447,7 +443,7 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({ employees, onActionClick,
     };
     
     return (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
@@ -469,23 +465,23 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({ employees, onActionClick,
                              {showCheckboxes && <td className="px-6 py-4 whitespace-nowrap">
                                 <input type="checkbox" value={emp.id} checked={selectedIds.includes(emp.id)} onChange={() => handleSelectOne(emp.id)} className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500" />
                             </td>}
-                            <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center space-x-3">
-                                    <img className="w-10 h-10 rounded-full object-cover" src={emp.fotoBase64 || `https://picsum.photos/40/40?random=${emp.id}`} alt={emp.nama}/>
-                                    <span className="font-medium text-gray-800">{emp.nama}</span>
+                                    <img className="w-10 h-10 rounded-full object-cover" src={emp.fotoBase64 || `https://placehold.co/40x40/eee/333?text=N/A`} alt={emp.nama}/>
+                                    <div className="text-sm font-medium text-gray-900">{emp.nama}</div>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">{emp.noAbsen}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{emp.bagian}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{emp.tglMasuk}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.noAbsen}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.bagian}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.tglMasuk}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                     {emp.statusPekerjaan}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <button onClick={() => onActionClick(emp.id)} className="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onClick={() => onActionClick(emp.id)} className="text-blue-600 hover:text-blue-900">
                                     {actionButtonText}
                                 </button>
                             </td>
@@ -497,13 +493,11 @@ const EmployeeTable: React.FC<EmployeeTableProps> = ({ employees, onActionClick,
     );
 };
 
-// ... More complex components to be defined here
 const EmployeeInputPage: React.FC<{onBack: () => void}> = ({onBack}) => {
     // Component state and logic
     return (
-        // FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
-        <PageWrapper title="Input Data Karyawan" maxWidth="6xl" showBackButton onBack={onBack}>
-          {/* Implement Employee Input Page UI here */}
+        <PageWrapper maxWidth="6xl" showBackButton onBack={onBack}>
+          <div className='w-full'> {/* Implement Employee Input Page UI here */} </div>
         </PageWrapper>
     )
 }
@@ -511,9 +505,8 @@ const EmployeeInputPage: React.FC<{onBack: () => void}> = ({onBack}) => {
 const EmployeeListPage: React.FC<{onBack: () => void}> = ({onBack}) => {
     // Component state and logic
     return (
-        // FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
-        <PageWrapper title="Daftar Karyawan" maxWidth="7xl" showBackButton onBack={onBack}>
-          {/* Implement Employee List for Problems UI here */}
+        <PageWrapper maxWidth="7xl" showBackButton onBack={onBack}>
+          <div className='w-full'> {/* Implement Employee List for Problems UI here */} </div>
         </PageWrapper>
     )
 }
@@ -521,9 +514,8 @@ const EmployeeListPage: React.FC<{onBack: () => void}> = ({onBack}) => {
 const SearchBiodataPage: React.FC<{onBack: () => void}> = ({onBack}) => {
     // Component state and logic
     return (
-        // FIX: Added missing 'title' prop to PageWrapper to satisfy PageWrapperProps interface.
-        <PageWrapper title="Cari Biodata Karyawan" maxWidth="2xl" showBackButton onBack={onBack}>
-            {/* Implement Search Biodata UI here */}
+        <PageWrapper maxWidth="2xl" showBackButton onBack={onBack}>
+            <div className='w-full'>{/* Implement Search Biodata UI here */}</div>
         </PageWrapper>
     )
 }
@@ -586,20 +578,28 @@ const App: React.FC = () => {
             case 'userMenu': return <UserMenuPage onNavigate={navigate} onBack={goBack} />;
             case 'adminLogin': return <AdminLoginPage onLogin={handleLogin} onNavigate={navigate} />;
             case 'adminDashboard': return <AdminDashboardPage onNavigate={navigate} />;
+            case 'employeeInputPage': return <EmployeeInputPage onBack={goBack} />;
+            case 'employeeListPage': return <EmployeeListPage onBack={goBack} />;
+            case 'biodataPage': return <SearchBiodataPage onBack={goBack} />;
             case 'userProblemPage': return <StaticInfoPage title="Informasi Permasalahan Karyawan" content="Untuk pertanyaan atau laporan terkait permasalahan personalia, silakan hubungi departemen HRD secara langsung." onBack={goBack} titleColor="text-yellow-800" />;
             case 'userProductionPage': return <StaticInfoPage title="Informasi Permasalahan Produksi" content="Untuk melaporkan masalah produksi seperti barang rusak (BS), silakan hubungi kepala regu atau supervisor di bagian Anda." onBack={goBack} titleColor="text-blue-800" />;
             case 'productionReportPage': return <ProductionReportPage onBack={goBack} />;
-            // Add more cases for other pages
             default: return <HomePage />;
         }
     };
 
     return (
-        <div className="min-h-screen relative flex flex-col">
+        <div className="min-h-screen relative flex flex-col bg-gray-50">
             <Header appState={getAppState()} onNavigate={navigate} onLogout={() => setIsLogoutModalOpen(true)} />
             
-            <div className={`transition-opacity duration-300 ease-in-out`}>
-                {renderPage()}
+             <div className="flex-grow">
+                 {currentPage === 'mainHero' ? (
+                    <HomePage />
+                ) : (
+                    <div className="pt-16">
+                        {renderPage()}
+                    </div>
+                )}
             </div>
             
             <Modal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} size="sm">
